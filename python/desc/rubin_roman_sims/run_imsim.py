@@ -29,9 +29,8 @@ class RunImSim:
             self.opsim_db = pd.read_sql(_ay2022_query, con)
         self.output_dir = output_dir
         self.psf_dir = psf_dir
+        logging.basicConfig(format="%(asctime)s: %(message)s")
         self.logger = logging.getLogger('RunImSim')
-        if len(self.logger.handlers) == 0:
-            self.logger.addHandler(logging.StreamHandler(sys.stdout))
         self.logger.setLevel(log_level)
 
     def make_atm_psf(self, visit):
@@ -84,6 +83,7 @@ class RunImSim:
                   'stamp.fft_sb_thresh': 1e5,
                   'output.nproc': nproc,
                   'output.camera': 'LsstCam',
+                  'output.only_dets': only_dets,
                   'output.dir': self.output_dir,
                   'output.det_num.first': 0,
                   'output.nfiles': len(only_dets),
@@ -98,14 +98,19 @@ if __name__ == '__main__':
 #    sky_catalog_file = '/global/cfs/cdirs/descssim/imSim/skyCatalogs/skyCatalog.yaml'
     sky_catalog_file = '/global/cfs/cdirs/descssim/imSim/skyCatalogs_v2/skyCatalog.yaml'
     opsim_db_file = '/global/cfs/cdirs/descssim/imSim/lsst/data/draft2_rw0.9_v2.99_10yrs.db'
-    output_dir = 'output_ay2022_skycat_v2'
+    output_dir = 'output_ay2022_skycat_v2_test'
     run_imsim = RunImSim(sky_catalog_file, opsim_db_file,
                          output_dir=output_dir)
 
+    # Read in ccd lists keyed by visit
     with open('AY2022_sims_ccds_rw0.9_v2.99.json') as fobj:
         ccd_lists = json.load(fobj)
 
-    nproc = 1
+    # Sort by number of CCDs in descending order.
+    sorted_lists = sorted(ccd_lists.items(), key=lambda x: len(x[1]),
+                          reverse=True)
 
-    for visit, ccds in ccd_lists.items():
-        run_imsim(visit, ccds[:nproc], nproc=nproc)
+    nproc = 16
+    for visit, ccds in sorted_lists:
+        run_imsim(visit, ccds, nproc=nproc)
+        break
