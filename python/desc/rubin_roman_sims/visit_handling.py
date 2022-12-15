@@ -1,25 +1,23 @@
 import os
 import glob
 import json
-from collections import defaultdict
+from itertools import cycle
 
 
 __all__ = ['make_visit_tranches', 'omit_existing_ccd_visits']
 
 
 def omit_existing_ccd_visits(ccd_lists, output_dir):
-    trimmed_ccd_lists = {}
-    for visit, ccd_candidates in ccd_lists.items():
-        ccds = []
-        for det_name in ccd_candidates:
-            pattern = os.path.join(output_dir,
-                                   f'amp_*{visit}*{det_name}*.fits*')
-            amp_files = glob.glob(pattern)
-            if not amp_files:
-                ccds.append(det_name)
-        trimmed_ccd_lists[visit] = ccds
-    return trimmed_ccd_lists
-
+    return {
+        visit: [
+            det_name
+            for det_name in ccd_candidates
+            if not glob.glob(
+                os.path.join(output_dir, f"amp_*{visit}*{det_name}*.fits*")
+            )
+        ]
+        for visit, ccd_candidates in ccd_lists.items()
+    }
 
 def make_visit_tranches(num_tranches, output_dir, ccd_list_file=None):
     # Read in CCD lists keyed by visit.
@@ -37,13 +35,8 @@ def make_visit_tranches(num_tranches, output_dir, ccd_list_file=None):
                           reverse=True)
 
     # Create tranches of visits by cycling through sorted_lists.
-    visit_tranches = defaultdict(dict)
-    for i in range(0, len(sorted_lists), num_tranches):
-        for j in range(num_tranches):
-            index = i + j
-            if index >= len(sorted_lists):
-                break
-            visit, ccds = sorted_lists[index]
-            visit_tranches[j][visit] = ccds
+    visit_tranches = [{}] * num_tranches
+    for (tranche, (visit, ccds)) in zip(cycle(visit_tranches), sorted_lists):
+        tranche[visit] = ccds
 
     return visit_tranches
