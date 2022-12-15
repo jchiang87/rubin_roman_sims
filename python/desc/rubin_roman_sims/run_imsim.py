@@ -1,6 +1,4 @@
 import os
-import sys
-import json
 import logging
 import sqlite3
 import pandas as pd
@@ -51,7 +49,7 @@ class RunImSim:
                                  f'atm_psf_{visit:08d}-{snap:1d}-{band}.pkl')
         imsim.AtmosphericPSF(airmass, rawSeeing, band, boresight, rng,
                              exptime=exptime, screen_size=screen_size,
-                             doOpt=doOpt, nproc=1, save_file=save_file)
+                             doOpt=doOpt, nproc=nproc, save_file=save_file)
 
     def __call__(self, visit, only_dets, nproc=1, nobjects=None,
                  random_seed=None):
@@ -64,8 +62,6 @@ class RunImSim:
                   'input.sky_catalog':
                       {'file_name': self.sky_catalog_file,
                        'apply_dc2_dilation':  True},
-#                       'obj_types': ['star']},
-#                       'obj_types': ['galaxy']},
                   'input.opsim_meta_dict.file_name': self.opsim_db_file,
                   'input.opsim_meta_dict.visit': visit,
                   'input.tree_rings.only_dets': only_dets,
@@ -92,25 +88,3 @@ class RunImSim:
         if nobjects is not None:
             config['image.nobjects'] = nobjects
         galsim.config.Process(config, logger=self.logger)
-
-
-if __name__ == '__main__':
-#    sky_catalog_file = '/global/cfs/cdirs/descssim/imSim/skyCatalogs/skyCatalog.yaml'
-    sky_catalog_file = '/global/cfs/cdirs/descssim/imSim/skyCatalogs_v2/skyCatalog.yaml'
-    opsim_db_file = '/global/cfs/cdirs/descssim/imSim/lsst/data/draft2_rw0.9_v2.99_10yrs.db'
-    output_dir = 'output_ay2022_skycat_v2_test'
-    run_imsim = RunImSim(sky_catalog_file, opsim_db_file,
-                         output_dir=output_dir)
-
-    # Read in ccd lists keyed by visit
-    with open('AY2022_sims_ccds_rw0.9_v2.99.json') as fobj:
-        ccd_lists = json.load(fobj)
-
-    # Sort by number of CCDs in descending order.
-    sorted_lists = sorted(ccd_lists.items(), key=lambda x: len(x[1]),
-                          reverse=True)
-
-    nproc = 16
-    for visit, ccds in sorted_lists:
-        run_imsim(visit, ccds, nproc=nproc)
-        break
