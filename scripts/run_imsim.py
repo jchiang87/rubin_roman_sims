@@ -1,8 +1,7 @@
-import os
+#!/bin/env python3
+
+#import os
 import sys
-import glob
-import json
-from collections import defaultdict
 from desc.rubin_roman_sims import RunImSim, make_visit_tranches
 
 
