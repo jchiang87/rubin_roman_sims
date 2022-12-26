@@ -14,8 +14,6 @@ _ay2022_query = """select * from observations where
                    48.24 < fieldRA and fieldRA < 58.76 and
                    -44.05 < fieldDec and fieldDec < -35.95"""
 
-_camera = imsim.get_camera('LsstCam')
-
 
 class RunImSim:
     def __init__(self, sky_catalog_file, opsim_db_file,
@@ -51,9 +49,9 @@ class RunImSim:
                              exptime=exptime, screen_size=screen_size,
                              doOpt=doOpt, nproc=nproc, save_file=save_file)
 
-    def __call__(self, visit, only_dets, nproc=1, nobjects=None,
-                 random_seed=None):
-        global _camera
+
+    def make_config(self, visit, only_dets, nproc=1, nobjects=None,
+                    random_seed=None, approx_nobjects=None):
         visit = int(visit)
         if random_seed is None:
             random_seed = visit
@@ -87,4 +85,13 @@ class RunImSim:
                   'output.truth.dir': '@output.dir'}
         if nobjects is not None:
             config['image.nobjects'] = nobjects
+        if approx_nobjects is not None:
+            config['input.sky_catalog.approx_nobjects'] = approx_nobjects
+        return config
+
+    def __call__(self, visit, only_dets, nproc=1, nobjects=None,
+                 random_seed=None):
+        config = self.make_config(visit, only_dets, nproc=nproc,
+                                  nobjects=nobjects, random_seed=random_seed,
+                                  approx_nobjects=approx_nobjects):
         galsim.config.Process(config, logger=self.logger)
