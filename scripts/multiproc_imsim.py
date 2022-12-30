@@ -28,7 +28,7 @@ num_tranches = int(sys.argv[1])
 tranche = int(sys.argv[2])
 visit_tranches = make_visit_tranches(num_tranches, output_dir)
 
-processes = 83
+processes = 71
 with multiprocessing.Pool(processes=processes) as pool:
     workers = []
     for visit, ccds in visit_tranches[tranche].items():
