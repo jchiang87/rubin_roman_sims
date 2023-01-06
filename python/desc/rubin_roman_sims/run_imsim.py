@@ -1,6 +1,7 @@
 import os
 import logging
 import sqlite3
+import yaml
 import pandas as pd
 import galsim
 import imsim
@@ -13,8 +14,6 @@ _ay2022_query = """select * from observations where
                    observationStartMJD < 60583.001805555556 and
                    48.24 < fieldRA and fieldRA < 58.76 and
                    -44.05 < fieldDec and fieldDec < -35.95"""
-
-_camera = imsim.get_camera('LsstCam')
 
 
 class RunImSim:
@@ -51,20 +50,21 @@ class RunImSim:
                              exptime=exptime, screen_size=screen_size,
                              doOpt=doOpt, nproc=nproc, save_file=save_file)
 
-    def __call__(self, visit, only_dets, nproc=1, nobjects=None,
-                 random_seed=None):
-        global _camera
+
+    def make_config(self, visit, only_dets, nproc=1, nobjects=None,
+                    random_seed=None, approx_nobjects=None):
         visit = int(visit)
         if random_seed is None:
             random_seed = visit
-        config = {'template': 'imsim-config',
+        config = {'modules': ['imsim'],
+                  'template': 'imsim-config',
                   'input.instance_catalog': '',
                   'input.sky_catalog':
                       {'file_name': self.sky_catalog_file,
                        'apply_dc2_dilation':  True},
                   'input.opsim_meta_dict.file_name': self.opsim_db_file,
                   'input.opsim_meta_dict.visit': visit,
-                  'input.tree_rings.only_dets': only_dets,
+                  'input.tree_rings.only_dets': [_ for _ in only_dets],
                   'input.atm_psf.save_file':
                       {'type': 'FormattedStr',
                        'format': os.path.join(self.psf_dir,
@@ -79,7 +79,7 @@ class RunImSim:
                   'stamp.fft_sb_thresh': 1e5,
                   'output.nproc': nproc,
                   'output.camera': 'LsstCam',
-                  'output.only_dets': only_dets,
+                  'output.only_dets': [_ for _ in only_dets],
                   'output.dir': self.output_dir,
                   'output.det_num.first': 0,
                   'output.nfiles': len(only_dets),
@@ -87,4 +87,11 @@ class RunImSim:
                   'output.truth.dir': '@output.dir'}
         if nobjects is not None:
             config['image.nobjects'] = nobjects
+        if approx_nobjects is not None:
+            config['input.sky_catalog.approx_nobjects'] = approx_nobjects
+        return config
+
+    def __call__(self, config_file):
+        with open(config_file) as fobj:
+            config = yaml.load(fobj)
         galsim.config.Process(config, logger=self.logger)
