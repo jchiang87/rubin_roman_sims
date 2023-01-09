@@ -1,8 +1,12 @@
 import os
 import logging
-import numpy as np
 import galsim
+from lsst.afw import cameraGeom
 import imsim
+
+
+__all__ = ['make_calib_frames']
+
 
 def make_calib_frames(exptime, output_dir, random_seed, snap=0,
                       nproc=1, only_dets=None, sky_level=0,
@@ -49,35 +53,13 @@ def make_calib_frames(exptime, output_dir, random_seed, snap=0,
               'output.truth': "",
               'output.file_name':
                   {'type': 'FormattedStr',
-                   'format':'eimage_%s-%03d-%s.fits',
+                   'format': 'eimage_%s-%03d-%s.fits',
                    'items': [output_dir, snap, "$det_name"]},
               'output.readout.file_name':
                   {'type': 'FormattedStr',
-                   'format':'amp_%s-%03d-%s.fits.fz',
-                   'items': [output_dir, snap, "$det_name"]}
-    }
+                   'format': 'amp_%s-%03d-%s.fits.fz',
+                   'items': [output_dir, snap, "$det_name"]}}
 
     logging.basicConfig(format="%(asctime)s: %(message)s")
     logger = logging.getLogger('make_dark_frames')
     galsim.config.Process(config, logger=logger)
-
-if __name__ == '__main__':
-#    output_dir = 'bias'
-#    exptime = 30.
-#    sky_level = 0
-#
-#    output_dir = 'dark'
-#    exptime = 300.
-#    sky_level = 0
-
-    output_dir = 'sky_flat'
-    exptime = 30.        # This determines the number of cosmic rays and
-                         # dark current contribution.
-    sky_level = 2.5e4    # photons/arcsec**2
-
-    nproc = 1
-    only_dets = ['R22_S11']
-    snaps = 1
-    for snap, random_seed in enumerate(np.random.randint(int(1e9), size=snaps)):
-        make_calib_frames(exptime, output_dir, random_seed, snap=snap,
-                          sky_level=sky_level, only_dets=only_dets)
